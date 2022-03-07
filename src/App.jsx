@@ -1,4 +1,7 @@
+import { useSelector } from "react-redux";
 import { Link, Route, Routes } from "react-router-dom";
+
+import { selectUser } from "./features/reducer/userSlice.js";
 import Login from './components/Login'
 
 const Home = () => {
@@ -26,7 +29,10 @@ const Contact = () => {
 };
 
 function App() {
+  const user = useSelector(selectUser)
+  console.log(user)
   return (
+
     <div className="App">
       <h1 className="text-2xl text-center">
         <Link className="text-red-500" to="/">Home </Link>
@@ -35,7 +41,11 @@ function App() {
         |
         <Link className="text-green-500" to="/contact"> Contact </Link>
         |
-        <Link className="text-yellow-500" to="/login"> Login </Link>
+        {user ?
+          <Link className="text-purple-500" to="/login"> logout </Link>
+          :
+          <Link className="text-purple-500" to="/login"> Login </Link>
+        }
       </h1>
       <Routes>
         <Route path="/" element={<Home />} />

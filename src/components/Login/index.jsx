@@ -2,6 +2,7 @@ import { Form, Formik } from 'formik';
 import { useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 
 import InputText from '../InputText';
 import LoginValidation from '../../helpers/validations/login.js'
@@ -9,39 +10,40 @@ import LOGIN_MUTATION from "../../helpers/graphql/mutations/login.js"
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [errores, setErrores] = useState({});
-  const [user, setUser] = useState({
+  const [credentials, setCredentials] = useState({
     email: "",
     password: "",
   });
 
   const [login, { loading }] = useMutation(LOGIN_MUTATION, {
-    onCompleted: data => {
-      localStorage.setItem('token', data.login.token);
-      navigate('/');
-    },
-    onError(err) {
-      console.log(err.graphQLErrors[0].message);
-      setErrores(err.graphQLErrors[0].message);
-    },
     variables: {
-      ...user
+      ...credentials,
     }
   });
 
   const handleSubmit = (values) => {
-    setErrores({});
-    setUser({ ...values });
-    try {
-      login();
-    } catch (error) {
-    }
+    console.log(values);
+    setCredentials(values);
+    login({
+      variables: {
+        ...credentials,
+      }
+    })
+      .then(({ data }) => {
+        localStorage.setItem('token', data.login.token);
+        localStorage.setItem('user', JSON.stringify(data.login.user));
+        dispatch(login, {
+          ...data
+        })
+        navigate('/');
+      })
+      .catch(error => {
+        console.log(error);
+        setErrores(error.graphQLErrors[0].extensions.exception.errors);
+      });
   };
-
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
   return (
     <div>
       {
@@ -55,7 +57,7 @@ const Login = () => {
         )
       }
       <Formik
-        initialValues={user}
+        initialValues={credentials}
         onSubmit={handleSubmit}
         validationSchema={LoginValidation}
         errores={errores}
@@ -66,7 +68,9 @@ const Login = () => {
             <InputText name="password" label="Password" type="password" placeholder="Contraseña" />
             <button
               className="mt-2 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              type="submit">
+              type="submit"
+              disabled={loading ? 'disabled' : ''}
+            >
               Iniciar sesión
             </button>
           </Form>
